@@ -20,39 +20,48 @@ class gearPlot(pg.GraphicsLayoutWidget):
         # legforce could be both
 
         self.par = p
+        self.data = pd.DataFrame()
         self.ts_plot = self.addPlot(1, 0)
         self.pv_plot = self.addPlot(0, 0)
+
         self._set_ts_plot()
-        self._set_pow_plot()
-        self.reset_v_cad()
         self._set_pv_p()
+        self.p = [self.ts, self.pv]
 
     def _set_ts_plot(self):
         self.ts_plot.addLegend()
-        self.ts_plot.setLabels(**{'title': 'Ratio per rear gear', 'left': 'ratio', 'bottom': 'rear index'})
-        self.ts = self.ts_plot.plot(pen='c', width=3, name='Combined')
+        self.ts_plot.setLabels(**{'title': 'Teperature vs entropy', 'left': ('T', 'K'), 'bottom': ('S', "kJ/(kgK)")})
+        self.ts = {'f':self.ts_plot.plot(pen='c', width=3),'g':self.ts_plot.plot(pen='c', width=3)}
+        self.ts_points = self.ts_plot.scatterPlot(pen='r', width=3)
 
     def _set_pv_p(self):
         self.pv_plot.setLabels(
-            **{'title': 'cadence vs speed', 'left': ('cad', 'RPM'), 'bottom': ('speed', 'km/h')})
-        self.pv = self.pv_plot.plot(pen='c', width=3)
-        pass
+            **{'title': 'Preasure vs volume', 'left': ('P', 'kPa'), 'bottom': ('v', 'm3/(kg)')})
+        self.pv = {'f': self.pv_plot.plot(pen='c', width=3),'g':self.pv_plot.plot(pen='c', width=3)}
+        self.pv_points = self.pv_plot.scatterPlot(pen='r', width=3)
 
-    def res(self, v, c):
-        s1 = v.shape[1]
-        z = np.arange(s1)
-        z2 = np.arange(c.size)
-        for n, i in enumerate(self.g_p):
-            i.setData(z, v[n])
-        self.ts.setData(z2, c)
-        self.res_other()
-    #
+    def res(self, point):
+
+        # find plots at sat p, t for lots
+        jk = ['Ts', 'Pv']
+        for i in range(2):
+            self.p[i].plotpoint(point[jk[i][0]], point[jk[i][1]])  # todo next point on f or g or other
+    # plot point p,v,st, and add line for next point folow line then along curve
     # def res_other(self):
     #     # cadence
     #
     #     self.pv.setData(self.par.process['p'], self.par.process['v'])  # asuming df also need to add path
     #
     #     self.ts.setData(s_km, w_t)
+
+    def reset_el(self):
+        # find plots at sat p, t for lots
+        jk = ['Ts', 'Pv']
+        data = self.par.wether[self.par.cur_el]['t']  # todo on each point add line on each and a few
+        data = data[data.index >0]
+        for i in range(2):
+            for j in 'fg':
+                self.p[i][j].setData(np.array(data[jk[i][1] + j]), np.array(data[jk[i][0]]))
 
 
 class Window(QMainWindow):
@@ -71,6 +80,7 @@ class Window(QMainWindow):
         self.setWindowTitle('Thermo Calc')
         self.file = '340 py_noex2.xlsx'
         self.wether = {}
+        self.plot = gearPlot(self)
         print('self.load_d')
         self.load_data()
         print('self.set_table')
@@ -83,7 +93,8 @@ class Window(QMainWindow):
         self.reset_inputs()
         print('self.reset table')
         self.reset_table()
-        print('self.init fin')
+        print('self.init fin\n----------------------------\n-------------------------------\n---------------\n\n')
+
 
     def _set_tool(self):
         # pv, st, or sis plots
@@ -93,7 +104,10 @@ class Window(QMainWindow):
         self.tool_bar = QToolBar('Main toolbar')
         self.qual = 0
         self.vari_ls = 'vhs'
-        self.varis = SuperText('t2', self, vals=['p', 't'])
+        self.varis = SuperText('t2', self)
+        self.d2 = QDockWidget('plot')
+        self.d2.setWidget(self.plot)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.d2)
 
         # self.save_op = SuperText('File Options', self, vals=self.button_list)
         print('load main')
@@ -111,7 +125,7 @@ class Window(QMainWindow):
         self.addToolBar(self.tool_bar)
 
     def load_data(self):
-        print('load ex')
+
         xl = pd.ExcelFile(self.file)
 
         docs = xl.sheet_names
@@ -126,8 +140,6 @@ class Window(QMainWindow):
             if el not in self.wether:
                 self.wether[el] = {}
             self.wether[el][typ] = sh
-            # print(f'el: {el}, type: {typ}')
-            # print(sh.head())
 
     def run_cmd(self, i, j=None):
         print(f'run cmd i,j: ({i}, {j})')
@@ -135,28 +147,25 @@ class Window(QMainWindow):
             self.reset_inputs(j)
         elif i == self.s_d_s_n:
             self.reset_outputs(j)
-        else:
-            self.reset_v(i)
 
     def reset_inputs(self, ii=None):
-        print(f'run reset iputs ii: ({ii})')
+        print(f'\n\n------------\n--------------\nrun reset iputs ii: ({ii})')
         if ii is not None:
             print('reset curel')
             self.cur_el = ii
         print(f'second data reset: cur el = ', self.cur_el)
-        self.second_data_selector.reset_data()
-        print(f'reset outputs')
-        self.reset_outputs()
+        self.plot.reset_el()
+        self.second_data_selector.reset_properties()
 
     def reset_outputs(self, jj=None):
-        print(f'run reset outputs jj: ({jj})')
+        print(f'\n------------\nrun reset outputs jj: ({jj})')
         if jj is not None:
             # print('reset curty')
             self.cur_ty = jj
         # print(f'cur data reset: cur ty=', self.cur_ty)
         self.current_data = self.wether[self.cur_el][self.cur_ty]
         # print(f'var reset')
-        self.varis.reset_data()
+        self.varis.reset_data_columns()
         # todo current data?
 
         self.reset_table()
@@ -211,7 +220,10 @@ class Window(QMainWindow):
         pass
 
     def get_quality(self, dx, x):
-        return (x - dx[0]) / np.diff(dx)[0]
+        d = np.diff(dx)[0]
+        if d == 0:
+            d = 1
+        return (x - dx[0]) / d
 
     def at_quality(self, dy, x):
         return np.diff(dy)[0] * x + dy[0]
@@ -222,17 +234,6 @@ class Window(QMainWindow):
                 t_r = str((round(v_r, 4)))
                 self.varis.but[iiii].setText(t_r)
         print('reset vals: i=', i)  # todo x
-        # if not t and (x v s h):
-        #     highlight and fillin values for vfg, not v
-        #     if in midle use those vg vals to solve
-        # once both, populat chart
-        #         # if cell.clicked:
-        #         #     color.hhighlich max 2
-        #         # if cell == index:
-        #         #     color.highlight
-        #         # elif cell == multiindex:
-        #         #     for c in cel:
-        #         #         color.hightlights
 
         val = float(tex)
         if i == 'x':  # user input of independant and x gives y or y and x rare test
@@ -240,7 +241,7 @@ class Window(QMainWindow):
             for ii in self.vari_ls:
                 check_v(ii)
 
-        elif i in self.vari_ls:
+        elif i in self.vari_ls and self.cur_ty in 'tp':
             he = [float(self.varis.but[i + f].text()) for f in 'fg']  # todo empty
             if min(he)<=val<=max(he):
                 self.qual = self.get_quality(he,val)
@@ -254,7 +255,7 @@ class Window(QMainWindow):
                         self.varis.but[ii].setText('0')
         else:
 
-            # di = self.wether[self.cur_el][self.cur_ty]
+            # di = self.wether[self.cur_el][self.cur_ty]  # todo any two data peices
             ind_1 = self.current_data[i][1:] > val
             ind_1 = ind_1.values
             index_2 = [ind_1[i] != ind_1[i + 1] for i in range(ind_1.size - 1)]
@@ -262,6 +263,9 @@ class Window(QMainWindow):
             ind_3 = index_2.index(True)
 
             lo = self.current_data.loc[ind_3:ind_3 + 1]
+            # if self.cur_ty not in 'tp':
+            #     if i == list(self.varis.but.keys())[0]:
+
             dx = np.array(lo[i])
 
             for ii in self.varis.but.keys():
@@ -290,7 +294,7 @@ class Window(QMainWindow):
         self.main_data_selector.setCurrentText(val)
         self.cur_el = val
         self.cur_ty = list(self.wether[self.cur_el].keys())[0]
-        self.second_data_selector.reset_data()
+        self.second_data_selector.reset_properties()
         val = 'p'  # self.settings.value(self.s_d_s_n,'p')
         self.main_data_selector.setCurrentText(val)
         self.cur_ty = val
@@ -329,14 +333,13 @@ class Window(QMainWindow):
 class SuperCombo(QComboBox):
     def __init__(self, name, par, orient_v=True, vals=None, show_lab=True, run=True):
         super().__init__()
-        print('user combo')
+
         self.par = par
         self.orient_v = orient_v
         self.show_lab = show_lab
         self.name = name
         self.wig = QWidget()
         self.lab = QLabel(self.name)
-        print('user layout')
         self._layout_set()
         print('vals')
         if vals is not None:
@@ -346,13 +349,11 @@ class SuperCombo(QComboBox):
             print('run')
 
     def init_op(self):
-        print('init: ', self.name)
         self.currentTextChanged.connect(self.rc)
-        print('connected')
 
     def rc(self):
         x = self.currentText()
-        print('rc: x: ', x)
+
 
         if x is not None and x != '':
             self.par.run_cmd(self.name, x)
@@ -379,20 +380,25 @@ class SuperCombo(QComboBox):
             else:
                 self.layout.removeWidget(self.lab)
 
-    def reset_data(self):
+    def reset_properties(self):
         try:
             self.currentTextChanged.disconnect(self.rc)
+            print('disconect\n')
         except TypeError:
-            pass
+            print('error')
+
         self.clear()
+
         self.addItems(list(self.par.wether[self.par.cur_el].keys()))
+
         if self.par.cur_ty in self.par.wether:
             self.setCurrentText(self.par.cur_ty)
+
         self.currentTextChanged.connect(self.rc)
 
 
 class SuperText(QWidget):
-    def __init__(self, name, par, orient_v=True, vals=None, show_lab=True):
+    def __init__(self, name, par, orient_v=True, show_lab=True):
         super().__init__()
 
         self.par = par
@@ -406,127 +412,61 @@ class SuperText(QWidget):
         self.sub_but_lab = {}
         self.layout2 = QGridLayout()
         self.setLayout(self.layout2)
-        # self.layout2 = QGridLayout()
-        # self.layout2 = QGridLayout()
-        # self.setLayout(self.layout2)
 
-        # if vals:
-        #     for i in vals:
-        #         j = QLineEdit()
-        #         j.editingFinished.connect(lambda x: self.par.run_cmd(i,x))
-        #         self.but[i] = j
-        # # for input
-        # if 'fg' in name:
-        # QLineEdit(name.split('fg'))  #not more
-        # QLineEdit(name).setEnabled(false)  # user enabled, can be shown not inputed
-        # toolbar 2 gets name
+    def removeButtons(self):
+        for cnt in reversed(range(self.layout2.count())):
+            print('removing, ', cnt)
+            # takeAt does both the jobs of itemAt and removeWidget
+            # namely it removes an item and returns it
+            widget = self.layout2.takeAt(cnt).widget()
 
-        # self.reset_data()
+            if widget is not None:
+                # widget will be None if the item is a layout
+                widget.deleteLater()
 
-    def reset_data(self):
-        print('reset data')
+    def reset_data_columns(self):
+        print('____________________\n__________________\nreset data')
         vals = list(self.par.current_data.columns)
         if self.par.cur_ty in 'tp':
             vals.extend(['v', 'h', 's', 'x'])  # todo always?
 
-        print('vals: ', vals)
-        vm = []
-        for i in self.but.keys():
-            if i not in vals:
-                self.layout2.removeWidget(self.but[i])
-                self.layout2.removeWidget(self.lab_b[i])
-                vm.append(i)
-        for i in vm:
-            del self.lab_b[i]
-            del self.but[i]
+        self.removeButtons()
+        self.lab_b = {}
+        self.but = {}
+        print('____________________\nend rm\n')
+        # for ij in vm:
+        #     del self.lab_b[ij]
+        #     del self.but[ij]
 
         n = 0
         mi = 0
         for i in vals:
-            if i not in self.but.keys():
+            # if i not in self.but.keys():
 
-                j = QLineEdit()
-                k = QLabel(i)
-                self.but[i] = j
-                self.lab_b[i] = k
-                if 'f' in i or 'g' in i:
-                    m = 2
-                    j.setReadOnly(True)
-                    ni = mi
-                    mi += 1
-                else:
-                    m = 0
-                    ni = n
-                    n += 1
-                j.editingFinished.connect(partial(self.run_cm, i))
-                self.layout2.addWidget(k, m, ni)
-                self.layout2.addWidget(j, m+ 1, ni)  # todo add lable for each
+            j = QLineEdit()
+            k = QLabel(i)
+            self.but[i] = j
+            self.lab_b[i] = k
+            if 'f' in i or 'g' in i:
+                m = 2
+                j.setReadOnly(True)
+                ni = mi
+                mi += 1
+            else:
+                m = 0
+                ni = n
+                n += 1
+            j.editingFinished.connect(partial(self.run_cm, i))
+            self.layout2.addWidget(k, m, ni)
+            self.layout2.addWidget(j, m+ 1, ni)  # todo add lable for each
+        self.update()
+        print('end data add\n____________________\n')
 
     def run_cm(self, i):
         tex = self.but[i].text()
         print(f'________________\ntex={tex}\n-------------------')
         # print(tex)
         self.par.reset_v(i, tex)
-        # self._layout_set()
-
-    #
-    # def _layout_set(self):
-    #     print('layout data')
-    #     # self.layout2 = QGridLayout()
-    #     n = 0
-    #     if self.orient_v:
-    #
-    #         for i in self.but.keys():
-    #             self.layout2.addWidget(self.but[i], 0, n)  # todo add lable for each
-    #             n += 1
-    #         self.layout2.addWidget(self.lab, 1, 0, 1, n)
-    #     else:
-    #         for i in self.but.keys():
-    #             self.layout2.addWidget(self.but[i], n, 0)
-    #             n += 1
-    #         self.layout2.addWidget(self.lab, 0, 1, n, 1)
-    #
-    #     print('add 4')
-
-    # noinspection PyArgumentList
-    # def _layout_set(self):
-    #     print('layout data')
-    #     print('rc before:', self.layout2.rowCount(), self.layout2.columnCount())
-    #
-    #     print('rc clear:', self.layout2.rowCount(),self.layout2.columnCount() )
-    #     n = 0
-    #     if self.orient_v:
-    #
-    #         for i in self.but.keys():
-    #             print('add 1')
-    #             #
-    #
-    #             n += 1
-    #         # self.layout2.addWidget(self.lab, 2, 0, 1, n)
-    #         print('rc add v:', self.layout2.rowCount(), self.layout2.columnCount())
-    #         print('add 2')
-    #     else:
-    #         for i in self.but.keys():
-    #             print('add 3')
-    #             # self.layout2.addWidget(QLabel(i), n, 0)
-    #             self.layout2.addWidget(self.but[i], n, 1)
-    #
-    #             n += 1
-    #         # self.layout2.addWidget(self.lab, 0, 2, n, 1)
-    #         print('rc add h:', self.layout2.rowCount(), self.layout2.columnCount())
-    #
-    #     self.par.update()
-    #     print('add 4')
-
-    def reset_show(self, show_lab=False, flip=False):
-        if flip:
-            self.orient_v = not self.orient_v
-            self._layout_set()
-        if show_lab:
-            print('reset')
-            self.show_lab = not self.show_lab
-            if not self.show_lab:
-                self.layout2.removeWidget(self.lab)
 
 
 if __name__ == "__main__":
