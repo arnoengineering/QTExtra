@@ -26,7 +26,7 @@ class gearPlot(pg.GraphicsLayoutWidget):
 
         self._set_ts_plot()
         self._set_pv_p()
-        self.p = [self.ts, self.pv]
+        self.p = [self.ts, self.pv,self.tv]
 
     def _set_ts_plot(self):
         self.ts_plot.addLegend()
@@ -38,12 +38,14 @@ class gearPlot(pg.GraphicsLayoutWidget):
         self.pv_plot.setLabels(
             **{'title': 'Preasure vs volume', 'left': ('P', 'kPa'), 'bottom': ('v', 'm3/(kg)')})
         self.pv = {'f': self.pv_plot.plot(pen='c', width=3),'g':self.pv_plot.plot(pen='c', width=3)}
+        self.tv = {'f': self.pv_plot.plot(pen='g', width=3),'g':self.pv_plot.plot(pen='g', width=3)}
         self.pv_points = self.pv_plot.scatterPlot(pen='r', width=3)
+        # self.pv_plot.setAxisLimits()
 
     def res(self, point):
 
         # find plots at sat p, t for lots
-        jk = ['Ts', 'Pv']
+        jk = ['Ts', 'Pv','Tv']
         for i in range(2):
             self.p[i].plotpoint(point[jk[i][0]], point[jk[i][1]])  # todo next point on f or g or other
     # plot point p,v,st, and add line for next point folow line then along curve
@@ -56,7 +58,7 @@ class gearPlot(pg.GraphicsLayoutWidget):
 
     def reset_el(self):
         # find plots at sat p, t for lots
-        jk = ['Ts', 'Pv']
+        jk = ['Ts', 'Pv','Tv']
         data = self.par.wether[self.par.cur_el]['t']  # todo on each point add line on each and a few
         data = data[data.index >0]
         for i in range(2):
@@ -81,6 +83,7 @@ class Window(QMainWindow):
         self.file = '340 py_noex2.xlsx'
         self.wether = {}
         self.plot = gearPlot(self)
+        self.po = point_ls(self)
         print('self.load_d')
         self.load_data()
         print('self.set_table')
@@ -468,6 +471,111 @@ class SuperText(QWidget):
         # print(tex)
         self.par.reset_v(i, tex)
 
+
+class point_ls(QListWidget):
+    def __init__(self, par):
+        super().__init__()
+        # self.setWindowTitle('QMainWindow')
+        self.full_c_v = []
+        self.par = par
+        self.curr_type = 'Const V'
+
+        self._create_tools()
+        # self.cam = cam(self, **self.va)
+        self.list_index = 0
+        # self.cen = aniWig(self)
+        # self.insert_list_wig_vals('+')
+        # self._set_p()
+
+    def _create_tools(self):
+        def add_push_button(i):
+            if i == '=':
+                kk = '+'
+            else:
+                kk = i
+            print('action I')
+            j = QPushButton(kk)
+            k = QAction(i)
+            k.triggered.connect(partial(self.insert_list_wig_vals, i))
+            j.clicked.connect(partial(self.insert_list_wig_vals, i))
+            self.list_v[i] = j
+
+            self.action_list[i] = k
+            return j, k
+
+        self.tool_dock = QDockWidget('list widget')
+        # add rem move up move down, single drag, selct, doble edit
+        self.tools = QWidget()
+        self.tool_dock.setWidget(self.tools)
+
+        self.par.addDockWidget(Qt.LeftDockWidgetArea, self.tool_dock)
+        self.tl = QVBoxLayout()
+        self.tool_layout = QGridLayout()
+        self.pm_l = QHBoxLayout()
+        self.lr_l = QVBoxLayout()
+        self.tools.setLayout(self.tool_layout)
+        self.list_v = {}
+        self.action_list = {}
+
+        self.itemClicked.connect(self.item_swap)
+
+        for add_comand in '=-':
+            ji, ki = add_push_button(add_comand)
+            self.pm_l.addWidget(ji)
+            ki.setShortcut(f"ctrl+{add_comand}")
+
+        for add_comand in ['Up', 'Down']:
+            ji, ki = add_push_button(add_comand)
+            self.lr_l.addWidget(ji)
+            ki.setShortcut(add_comand)
+
+        self.tool_layout.addWidget(self, 0, 0, 1, 2)
+        self.tool_layout.addLayout(self.lr_l, 1, 0)
+        self.tool_layout.addLayout(self.pm_l, 1, 1)
+        self.in_p = {}
+
+    def item_swap(self, item):
+        self.setCurrentItem(item)
+        self.list_index = self.ls_w.currentRow()
+
+    def add_motion(self, data, replace=False):
+        print('add motion')
+        kkkk = len(self.full_c_v)
+        if replace:
+
+            self.full_c_v[self.list_index] = data
+        else:
+            self.full_c_v.insert(self.list_index, data)
+            self.insertItem(self.list_index, f'Point: {kkkk}')
+        self.update()
+
+    def insert_list_wig_vals(self, input_command):
+        print('I', input_command)
+        self.list_index = self.currentRow()
+        if input_command == '+' or input_command == '=':  # todo add to menu
+            # remove
+
+            dic_d = {}
+            for k, v in self.par.varis.but.items():
+                print(f'k,v: ({k}:{v.text()})')
+                dic_d[k] = float(v.text())
+            self.add_motion(dic_d)  # todo maybe listitem? and check change motion
+            # self.mo.insert(ind)
+
+            # remove dict
+        elif input_command == '-':
+            # remove
+            self.removeItem(self.list_index)
+            self.full_c_v.remove(self.list_index)
+            # remove dict
+            # todo rem from cam
+            pass
+        elif input_command == 'Up':
+            print('up')
+            self.ls_w.currentItem.moveUp()
+        else:
+            print('down')
+            self.ls_w.currentItem.moveDown()
 
 if __name__ == "__main__":
     print('Running Chem E Solve')
