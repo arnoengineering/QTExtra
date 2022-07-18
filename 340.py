@@ -27,27 +27,39 @@ class gearPlot(pg.GraphicsLayoutWidget):
         self._set_ts_plot()
         self._set_pv_p()
         self.p = [self.ts, self.pv,self.tv]
+        self.ps = [self.ts_points, self.pv_points, self.tv_points]
 
     def _set_ts_plot(self):
         self.ts_plot.addLegend()
         self.ts_plot.setLabels(**{'title': 'Teperature vs entropy', 'left': ('T', 'K'), 'bottom': ('S', "kJ/(kgK)")})
         self.ts = {'f':self.ts_plot.plot(pen='c', width=3),'g':self.ts_plot.plot(pen='c', width=3)}
-        self.ts_points = self.ts_plot.scatterPlot(pen='r', width=3)
+        self.ts_points = pg.ScatterPlotItem(pen='r', width=3)
+        self.ts_plot.addItem(self.ts_points)
 
     def _set_pv_p(self):
         self.pv_plot.setLabels(
             **{'title': 'Preasure vs volume', 'left': ('P', 'kPa'), 'bottom': ('v', 'm3/(kg)')})
         self.pv = {'f': self.pv_plot.plot(pen='c', width=3),'g':self.pv_plot.plot(pen='c', width=3)}
         self.tv = {'f': self.pv_plot.plot(pen='g', width=3),'g':self.pv_plot.plot(pen='g', width=3)}
-        self.pv_points = self.pv_plot.scatterPlot(pen='r', width=3)
+        self.pv_points = pg.ScatterPlotItem(pen='r', width=3)
+        self.tv_points = pg.ScatterPlotItem(pen='y', width=3)
+        self.pv_plot.addItem(self.pv_points)
+        self.pv_plot.addItem(self.tv_points)
         # self.pv_plot.setAxisLimits()
 
-    def res(self, point):
-
+    def res(self, points):
         # find plots at sat p, t for lots
         jk = ['Ts', 'Pv','Tv']
-        for i in range(2):
-            self.p[i].plotpoint(point[jk[i][0]], point[jk[i][1]])  # todo next point on f or g or other
+        for i in range(len(jk)):
+            da = []
+            da_y = []
+            for ik in points:
+                da.append(ik[0][jk[i][1]])
+                da_y.append(ik[0][jk[i][0]])
+
+            self.ps[i].setData(da, da_y)  # todo next point on f or g or other
+
+        self.proces_lines_sat(points)
     # plot point p,v,st, and add line for next point folow line then along curve
     # def res_other(self):
     #     # cadence
@@ -59,11 +71,91 @@ class gearPlot(pg.GraphicsLayoutWidget):
     def reset_el(self):
         # find plots at sat p, t for lots
         jk = ['Ts', 'Pv','Tv']
-        data = self.par.wether[self.par.cur_el]['t']  # todo on each point add line on each and a few
+        data = self.par.wether[self.par.cur_el]['t']  # todo on each point add line on each and a few, TOP TEN PERCENT
+        # TODO  for gas
         data = data[data.index >0]
-        for i in range(2):
-            for j in 'fg':
-                self.p[i][j].setData(np.array(data[jk[i][1] + j]), np.array(data[jk[i][0]]))
+        if self.par.cur_el in ['R134a', 'water']:  # todo for gas, todo find pr, vr z k
+            # todo save data
+            for i in range(len(jk)):
+                    for j in 'fg':
+                        self.p[i][j].setData(np.array(data[jk[i][1] + j]), np.array(data[jk[i][0]]))
+
+    def proces_lines_ideal_gas(self, points):
+        # find plots at sat p, t for lots
+
+        pass
+
+    # def proces_lines_sat(self, points):
+    #     jk = ['Ts', 'Pv', 'Tv']
+    #
+    #     for i in range(len(jk)):
+    #         da = []
+    #         if 'p' not in jk[i]:
+    #             con = 'p'
+    #         else:
+    #             con = 'T'
+    #
+    #         da_y = []
+    #         for ij in range(len(points)):  # todo invalid, process
+    #             # todo type
+    #             ik = points[ij][0]
+    #             ty = points[ij][1]
+    #             p2 = points[ij][0]
+    #             if ty == 'compressed' or ik == 'superheated':
+    #                 # if compre
+    #                 curve = self.par.wether[self.par.current_el][ty].where[con == ik[con]]  # list points
+    #             inp = self.par.current_data.where[con == ik[con]]  # start end to poinmt in secter
+    #             da.append(ik[jk[i][1]])
+    #             da_y.append(ik[jk[i][0]])
+    #
+    #         self.ps[i].setData(da, da_y)  # todo next point on f or g or other
+    #     pass
+
+
+class powerCycle:
+    def __init__(self):
+        pass
+
+
+class vaporCycle(powerCycle):
+    def __init__(self):
+        super().__init__()
+        pass
+
+
+class Rankine(powerCycle):
+    def __init__(self):
+        super().__init__()
+        self.process = ['isentropic compress', 'isobaric heat addition', 'isentropic expand', 'isobaric heat reject']
+        # todo const pressure
+        # todo mix
+        # todo reheat
+        pass
+
+
+class gasCycle(powerCycle):
+    def __init__(self):
+        super().__init__()
+        pass
+
+
+class brayton(gasCycle):
+    def __init__(self):
+        super().__init__()
+        self.proces_ls = ['isentropic compress', 'isobaric heat reject', 'isentropic expand', 'isobaric heat addition']
+
+    def data(self,**kwargs):
+
+        p1 = 0
+        p4 = p1
+        p2 = 0
+        ex = 't2/t1=(p2/p1)^((k-1)/k)'
+        p1 = p2
+
+
+class carnotCycle(powerCycle):
+    def __init__(self):
+        super().__init__()
 
 
 class Window(QMainWindow):
@@ -72,6 +164,7 @@ class Window(QMainWindow):
         super().__init__()
         self.m_d_s_n = 'Element'
         self.s_d_s_n = 'Type'
+        self.jk = ['Ts', 'Pv', 'Tv']
         self.settings = QSettings('Chem E', 'Arno')
 
         # self.wether = {'water': {'p': {'p': [1, 21, 36], 't': [14, 2, 45]},
@@ -84,20 +177,15 @@ class Window(QMainWindow):
         self.wether = {}
         self.plot = gearPlot(self)
         self.po = point_ls(self)
-        print('self.load_d')
+        self.proscess_mean = {'isentropic': 's', 'isobaric':'P', 'isochoric':'v', 'isothermic':'T'}
+
         self.load_data()
-        print('self.set_table')
         self._set_table()
-        print('self.set tool')
         self._set_tool()
-        print('self.update set')
         self._update_set()
-        print('self.reset inputs')
         self.reset_inputs()
-        print('self.reset table')
         self.reset_table()
         print('self.init fin\n----------------------------\n-------------------------------\n---------------\n\n')
-
 
     def _set_tool(self):
         # pv, st, or sis plots
@@ -173,6 +261,90 @@ class Window(QMainWindow):
 
         self.reset_table()
 
+    def proces_lines_sat(self, points):
+        num_p = len(points)
+        for i in self.jk:
+            da = []
+            if 'p' not in i:
+                con = 'p'
+            else:
+                con = 'T'
+
+            da_y = []
+            for ij in range(num_p):  # todo invalid, process
+                # todo type
+                ik = points[ij][0]
+                ty = points[ij][1]
+                p2 = points[(ij+1)%num_p][0]
+                proces = self.proces[ij]
+                if self.proscess_mean[proces] in i:
+                    line = [[ik[i[1]],ik[i[0]]], [p2[i[1]],p2[i[0]]]]
+                else:
+                    if
+                    line = self.cur_el['t']
+                if ty == 'compressed' or ik == 'superheated':
+                    # if compre
+                    curve = self.par.wether[self.par.current_el][ty].where[con == ik[con]]  # list points
+                inp = self.par.current_data.where[con == ik[con]]  # start end to poinmt in secter
+                da.append(ik[self.jk[i][1]])
+                da_y.append(ik[self.jk[i][0]])
+
+            self.ps[i].setData(da, da_y)  # todo next point on f or g or other
+        pass
+
+    def reset2_v(self, p1,p2, const, dv):
+        def check_v(iiii):
+                v_r = self.at_quality([float(self.varis.but[iiii + f].text()) for f in 'fg'], self.qual)
+                t_r = str((round(v_r, 4)))
+                self.varis.but[iiii].setText(t_r)
+        # print('reset vals: i=', i)  # todo x
+
+        # val = float(tex)
+        # if i == 'x':  # user input of independant and x gives y or y and x rare test
+        #     self.qual = val
+        #     for ii in self.vari_ls:
+        #         check_v(ii)
+
+        if dv in self.vari_ls:
+            sats = [for f in 'fg']
+            he = [float(self.varis.but[i + f].text()) ]  # todo empty
+            if min(he)<=val<=max(he):
+                self.qual = self.get_quality(he,val)
+                for ii in self.vari_ls:
+                    if ii != i:
+                        check_v(ii)
+            else:
+                for ii in self.varis.but.keys():
+                    if ii != i:
+
+                        self.varis.but[ii].setText('0')
+        else:
+
+            # di = self.wether[self.cur_el][self.cur_ty]  # todo any two data peices
+            ind_1 = self.current_data[i][1:] > val
+            ind_1 = ind_1.values
+            index_2 = [ind_1[i] != ind_1[i + 1] for i in range(ind_1.size - 1)]
+
+            ind_3 = index_2.index(True)
+
+            lo = self.current_data.loc[ind_3:ind_3 + 1]
+            # if self.cur_ty not in 'tp':
+            #     if i == list(self.varis.but.keys())[0]:
+
+            dx = np.array(lo[i])
+
+            for ii in self.varis.but.keys():
+
+                if ii != i and ii != 'x':
+                    if ii in self.vari_ls and self.cur_ty in 'tp':
+                        check_v(ii)
+                    else:
+                        dy = np.array(lo[ii])
+                        v_ret = self.interp(dx, dy, val)
+                        t = str((round(v_ret, 4)))
+                        self.varis.but[ii].setText(t)
+                        print(f'ii,i ({ii},{i} set to {t}')
+        # self.set_point()
     def _set_table(self):
         # qtable?
         self.table = QTableWidget()
@@ -541,12 +713,19 @@ class point_ls(QListWidget):
     def add_motion(self, data, replace=False):
         print('add motion')
         kkkk = len(self.full_c_v)
+        ty = self.par.cur_ty
         if replace:
 
-            self.full_c_v[self.list_index] = data
+            self.full_c_v[self.list_index] = (data, ty)
+            # self.item_swap()
+            ite = self.item(self.list_index)
+            te = ite.text()
+            te = te.replace(' ', '').split(':')[-1]
+            ite.setText(f'{ty} Point: {te}')
         else:
-            self.full_c_v.insert(self.list_index, data)
-            self.insertItem(self.list_index, f'Point: {kkkk}')
+            self.full_c_v.insert(self.list_index, (data,ty))
+            self.insertItem(self.list_index, f'{ty} Point: {kkkk}')
+        self.par.plot.res(self.full_c_v)
         self.update()
 
     def insert_list_wig_vals(self, input_command):
