@@ -265,38 +265,21 @@ class Window(QMainWindow):
         num_p = len(points)
         for i in self.jk:
             da = []
-            if 'p' not in i:
-                con = 'p'
-            else:
-                con = 'T'
-
             da_y = []
             for ij in range(num_p):  # todo invalid, process
                 # todo type
-                ik = points[ij][0]
-                ty = points[ij][1]
-                p2 = points[(ij+1)%num_p][0]
                 proces = self.proces[ij]
-                if self.proscess_mean[proces] in i:
-                    line = [[ik[i[1]],ik[i[0]]], [p2[i[1]],p2[i[0]]]]
-                else:
-                    if
-                    line = self.cur_el['t']
-                if ty == 'compressed' or ik == 'superheated':
-                    # if compre
-                    curve = self.par.wether[self.par.current_el][ty].where[con == ik[con]]  # list points
-                inp = self.par.current_data.where[con == ik[con]]  # start end to poinmt in secter
-                da.append(ik[self.jk[i][1]])
-                da_y.append(ik[self.jk[i][0]])
+                pm = self.proscess_mean[proces]
+                d1,d2 = self.reset2_v(points[ij], points[(ij+1)%num_p], pm, points[ij][pm], i[1], i[0])
+                da.append(d1)
+                da_y.append(d2)
 
             self.ps[i].setData(da, da_y)  # todo next point on f or g or other
         pass
 
-    def reset2_v(self, p1,p2, const, dv):
-        def check_v(iiii):
-                v_r = self.at_quality([float(self.varis.but[iiii + f].text()) for f in 'fg'], self.qual)
-                t_r = str((round(v_r, 4)))
-                self.varis.but[iiii].setText(t_r)
+    def reset2_v(self, p1,p2, const,const_val, dv,dy):
+        print('proces point reset')
+
         # print('reset vals: i=', i)  # todo x
 
         # val = float(tex)
@@ -304,46 +287,62 @@ class Window(QMainWindow):
         #     self.qual = val
         #     for ii in self.vari_ls:
         #         check_v(ii)
+        ty_op = ['compressed', 'f', 't', 'g', 'superheated']
+        ty_op2 = ['compressed', 't', 'superheated']
+        ls = [[ty_op.index(p1[1]), p1[0]], [ty_op.index(p2[1]), p2[0]]]
+        if any(i[0] == 0 for i in ls):
+            ls.append([1, self.con_v(const,const_val,0,self.wether[self.cur_el]['t'])])
+        if any(i[0] == 1 for i in ls):
+            ls.append([3, self.con_v(const,const_val,1,self.wether[self.cur_el]['t'])])
 
-        if dv in self.vari_ls:
-            sats = [for f in 'fg']
-            he = [float(self.varis.but[i + f].text()) ]  # todo empty
-            if min(he)<=val<=max(he):
-                self.qual = self.get_quality(he,val)
-                for ii in self.vari_ls:
-                    if ii != i:
-                        check_v(ii)
+        ls.sort(key=lambda xi: xi[0])
+        if ty_op.index(p1[1])>ty_op.index(p2[1]):
+            ls.reverse()
+        p_ls = []
+        p_ls2 = []
+        for iii in range(len(ls)):
+            v = ls[iii]
+            v2 = ls[iii + 1]
+            v2[0] = v2[0]//2
+            if v[0] % 2 == 1:
+                v[0] = v2[0]
             else:
-                for ii in self.varis.but.keys():
-                    if ii != i:
+                v[0] = v[0]//2
+            data = self.wether[self.cur_el][ty_op2[v[0]]]
+            ind_1 = data[1:].where((v[1][dv]<=data[dv][1:]<= v2[1][dv]) or (v2[1][dv]<=data[dv][1:]<= v[1][dv]))
+            print(ind_1.head())
+            p_ls.append(ind_1[dv])
+            p_ls2.append(ind_1[dy])
+            return p_ls,p_ls2
 
-                        self.varis.but[ii].setText('0')
-        else:
+    def con_v(self,i, const_val,x=0,data=None):
+        print('con v')
+        if data is None:
+            data = self.current_data
+        # di = self.wether[self.cur_el][self.cur_ty]  # todo any two data peices
+        ind_1 = data[i][1:] > const_val
+        ind_1 = ind_1.values
+        index_2 = [ind_1[i] != ind_1[i + 1] for i in range(ind_1.size - 1)]
 
-            # di = self.wether[self.cur_el][self.cur_ty]  # todo any two data peices
-            ind_1 = self.current_data[i][1:] > val
-            ind_1 = ind_1.values
-            index_2 = [ind_1[i] != ind_1[i + 1] for i in range(ind_1.size - 1)]
+        ind_3 = index_2.index(True)
 
-            ind_3 = index_2.index(True)
+        lo = data.loc[ind_3:ind_3 + 1]
 
-            lo = self.current_data.loc[ind_3:ind_3 + 1]
-            # if self.cur_ty not in 'tp':
-            #     if i == list(self.varis.but.keys())[0]:
-
-            dx = np.array(lo[i])
-
-            for ii in self.varis.but.keys():
-
-                if ii != i and ii != 'x':
-                    if ii in self.vari_ls and self.cur_ty in 'tp':
-                        check_v(ii)
-                    else:
-                        dy = np.array(lo[ii])
-                        v_ret = self.interp(dx, dy, val)
-                        t = str((round(v_ret, 4)))
-                        self.varis.but[ii].setText(t)
-                        print(f'ii,i ({ii},{i} set to {t}')
+        dx = np.array(lo[i])
+        p2 = {}
+        for ii in data.columns:
+            if ii != i and ii != 'x':
+                if ii.replace('g','').replace('f', '') in self.vari_ls and self.cur_ty in 'tp':
+                    v_r = self.at_quality([self.interp(dx, data[ii+ f], const_val) for f in 'fg'], x)
+                    t_r = round(v_r, 4)
+                    p2[ii.replace('g','').replace('f', '') ] = t_r
+                else:
+                    dy = np.array(lo[ii])
+                    v_ret = self.interp(dx, dy, const_val)
+                    t = round(v_ret, 4)
+                    p2[ii] = t
+                    print(f'ii,i ({ii},{i} set to {t}')
+        return pd.DataFrame(p2)
         # self.set_point()
     def _set_table(self):
         # qtable?
