@@ -101,17 +101,9 @@ class gearPlot(pg.GraphicsLayoutWidget):
                 da.append(ik[0][jk[i][1]])
                 da_y.append(ik[0][jk[i][0]])
 
-            self.ps[i].setData(da, da_y)  # todo next point on f or g or other
+            self.ps[i].setData(da, da_y)
 
         self.par.proces_lines_sat(points)
-
-    # plot point p,v,st, and add line for next point folow line then along curve
-    # def res_other(self):
-    #     # cadence
-    #
-    #     self.pv.setData(self.par.process['p'], self.par.process['v'])  # asuming df also need to add path
-    #
-    #     self.ts.setData(s_km, w_t)
 
     def reset_el(self):
         # find plots at sat p, t for lots
@@ -119,42 +111,11 @@ class gearPlot(pg.GraphicsLayoutWidget):
         data = self.par.wether[self.par.cur_el]['t']  # todo on each point add line on each and a few, TOP TEN PERCENT
         # TODO  for gas
         data = data[data.index > 0]
-        if self.par.cur_el in ['R134a', 'water']:  # todo for gas, todo find pr, vr z k
-            # todo save data
+        if self.par.cur_el in ['R134a', 'water']:  # todo for gas, todo find pr, vr z k, todo save data
+            #
             for i in range(len(jk)):
                 for j in 'fg':
                     self.p[i][j].setData(np.array(data[jk[i][1] + j]), np.array(data[jk[i][0]]))
-
-    def proces_lines_ideal_gas(self, points):
-        # find plots at sat p, t for lots
-
-        pass
-
-    # def proces_lines_sat(self, points):
-    #     jk = ['Ts', 'Pv', 'Tv']
-    #
-    #     for i in range(len(jk)):
-    #         da = []
-    #         if 'p' not in jk[i]:
-    #             con = 'p'
-    #         else:
-    #             con = 'T'
-    #
-    #         da_y = []
-    #         for ij in range(len(points)):  # todo invalid, process
-    #             # todo type
-    #             ik = points[ij][0]
-    #             ty = points[ij][1]
-    #             p2 = points[ij][0]
-    #             if ty == 'compressed' or ik == 'superheated':
-    #                 # if compre
-    #                 curve = self.par.wether[self.par.current_el][ty].where[con == ik[con]]  # list points
-    #             inp = self.par.current_data.where[con == ik[con]]  # start end to poinmt in secter
-    #             da.append(ik[jk[i][1]])
-    #             da_y.append(ik[jk[i][0]])
-    #
-    #         self.ps[i].setData(da, da_y)  # todo next point on f or g or other
-    #     pass
 
 
 class Window(QMainWindow):
@@ -165,11 +126,6 @@ class Window(QMainWindow):
         self.s_d_s_n = 'Type'
         self.jk = ['Ts', 'Pv', 'Tv']
         self.settings = QSettings('Chem E', 'Arno')
-
-        # self.wether = {'water': {'p': {'p': [1, 21, 36], 't': [14, 2, 45]},
-        #                          't': {'p': [12, 21, 423], 't': [1, 2, 32]}},
-        #                'H2': {'p': {'p': [1, 211, 3], 't': [1, 24, 45]},
-        #                       't': {'p': [15, 51, 43], 't': [14, 2, 32]}}}  # todo from csv?
 
         self.setWindowTitle('Thermo Calc')
         self.file = '340 py_noex2.xlsx'
@@ -192,8 +148,6 @@ class Window(QMainWindow):
         print('-set tool')
         # pv, st, or sis plots
         # scale
-
-        # todo cell pressed table
         self.tool_bar = QToolBar('Main toolbar')
         self.qual = 0
         self.vari_ls = 'vhs'
@@ -230,28 +184,7 @@ class Window(QMainWindow):
         print(f'val: {val}, var: {var}, ty: {ty}')
         print('data =')
         print(data.head())
-        if ty == 't':  # todo super x
-
-            # ind_1 = data[var][1:] > val
-            # ind_1 = ind_1.values
-            # index_2 = [ind_1[i] != ind_1[i + 1] for i in range(ind_1.size - 1)]
-            #
-            # ind_3 = index_2.index(True)
-            #
-            # lo = data[1:].loc[ind_3 + 1:ind_3 + 2]
-            # # if self.cur_ty not in 'tp':
-            # #     if i == list(self.varis.but.keys())[0]:
-            #
-            # dx = np.array(lo[var])
-            # dd = {}
-            # print('solving interp ', dx)
-            # print('lo = ')
-            # print(lo)
-            # for ii in data.columns:
-            #     if ii != var:
-            #         dy = np.array(lo[ii])
-            #         v_ret = self.interp(dx, dy, val)
-            #         dd[ii] = [round(v_ret, 4)]
+        if ty == 't':
             return self.reset_vs(var,val,data[1:])
         else:
             data2 = data[1:]
@@ -262,8 +195,8 @@ class Window(QMainWindow):
         print('-test point chart')
         data = self.wether[self.cur_el]['t']
         data_indi = self.interp_data(data, point[indi_var], indi_var)
-        if check_var in 'vhs':  # todo find val
-            f, g = data_indi[check_var + 'f'][0], data_indi[check_var + 'g'][0]  # todo at interp
+        if check_var in 'vhs':
+            f, g = data_indi[check_var + 'f'][0], data_indi[check_var + 'g'][0]
             dgf = g - f
             if 0 <= (point[check_var] - f) / dgf <= 1:
                 ty = 't'
@@ -305,7 +238,7 @@ class Window(QMainWindow):
             if ty == 't':
                 x = self.get_quality([f, g], vp)
                 x2 = self.get_quality([f, g], vp2)
-                ra = np.linspace(x, x2)  # todo x,1
+                ra = np.linspace(x, x2)
                 for ri in ra:
                     point_lst.append(self.at_quality([f, g], ri))
             else:
@@ -319,9 +252,9 @@ class Window(QMainWindow):
                 if i[n][1] == 't':
                     x = self.get_quality([f, g], vp)
                     if i[(n + 1) % 2][1] == 'superheated':
-                        ra = np.linspace(x, g)  # todo x,1
+                        ra = np.linspace(x, g)
                     else:
-                        ra = np.linspace(f, g)  # todo x,1
+                        ra = np.linspace(f, g)
                     if n == 0:
                         ra = ra[::-1]
                     for ri in ra:
@@ -383,7 +316,6 @@ class Window(QMainWindow):
         self.current_data = self.wether[self.cur_el][self.cur_ty]
         # print(f'var reset')
         self.varis.reset_data_columns()
-        # todo current data?
 
         self.reset_table()
 
@@ -395,7 +327,6 @@ class Window(QMainWindow):
                 da = []
                 da_y = []
                 for ij in range(num_p):  # todo invalid, process
-                    # todo type
                     proces = self.proces[1]
                     pm = self.proscess_mean[proces]
                     d = self.point_to_x(points[ij][0], points[(ij + 1) % num_p][0], i[1], pm)
@@ -403,37 +334,36 @@ class Window(QMainWindow):
                         da.append(di[i[1]])
                         da_y.append(di[i[0]])
 
-                self.ps[i].setData(da, da_y)  # todo next point on f or g or other
+                self.ps[i].setData(da, da_y)
 
-    def con_v(self, i, const_val, x=0, data=None):
-        print('-con v')
-        if data is None:
-            data = self.current_data
-        # di = self.wether[self.cur_el][self.cur_ty]  # todo any two data peices
-        ind_1 = data[i][1:] > const_val
-        ind_1 = ind_1.values
-        index_2 = [ind_1[i] != ind_1[i + 1] for i in range(ind_1.size - 1)]
-
-        ind_3 = index_2.index(True)
-
-        lo = data.loc[ind_3:ind_3 + 1]
-
-        dx = np.array(lo[i])
-        p2 = {}
-        for ii in data.columns:
-            if ii != i and ii != 'x':
-                if ii.replace('g', '').replace('f', '') in self.vari_ls and self.cur_ty in 'tp':
-                    v_r = self.at_quality([self.interp(dx, data[ii + f], const_val) for f in 'fg'], x)
-                    t_r = round(v_r, 4)
-                    p2[ii.replace('g', '').replace('f', '')] = t_r
-                else:
-                    dy = np.array(lo[ii])
-                    v_ret = self.interp(dx, dy, const_val)
-                    t = round(v_ret, 4)
-                    p2[ii] = t
-                    print(f'ii,i ({ii},{i} set to {t}')
-        return pd.DataFrame(p2)
-        # self.set_point()
+    # def con_v(self, i, const_val, x=0, data=None):
+    #     print('-con v')
+    #     if data is None:
+    #         data = self.current_data
+    #     ind_1 = data[i][1:] > const_val
+    #     ind_1 = ind_1.values
+    #     index_2 = [ind_1[i] != ind_1[i + 1] for i in range(ind_1.size - 1)]
+    #
+    #     ind_3 = index_2.index(True)
+    #
+    #     lo = data.loc[ind_3:ind_3 + 1]
+    #
+    #     dx = np.array(lo[i])
+    #     p2 = {}
+    #     for ii in data.columns:
+    #         if ii != i and ii != 'x':
+    #             if ii.replace('g', '').replace('f', '') in self.vari_ls and self.cur_ty in 'tp':
+    #                 v_r = self.at_quality([self.interp(dx, data[ii + f], const_val) for f in 'fg'], x)
+    #                 t_r = round(v_r, 4)
+    #                 p2[ii.replace('g', '').replace('f', '')] = t_r
+    #             else:
+    #                 dy = np.array(lo[ii])
+    #                 v_ret = self.interp(dx, dy, const_val)
+    #                 t = round(v_ret, 4)
+    #                 p2[ii] = t
+    #                 print(f'ii,i ({ii},{i} set to {t}')
+    #     return pd.DataFrame(p2)
+    #     # self.set_point()
 
     def _set_table(self):
         print('-set table')
@@ -465,7 +395,6 @@ class Window(QMainWindow):
             for m in range(c):
                 self.table.setItem(n, m, QTableWidgetItem(str(self.current_data.iloc[n, m])))
 
-    # todo add process so click to add step and move, add add x
     def tab_s(self):
         print('-tab_s')
         col_n = self.table.currentColumn()
@@ -482,7 +411,6 @@ class Window(QMainWindow):
         else:
             return self.at_quality(dy, self.get_quality(dx, x))
 
-    # todo two var for superheated,  plot on same t,p the s v curves off the charts
     def point_n(self, n):
         return float(self.varis.but[n].text())
 
@@ -571,7 +499,7 @@ class Window(QMainWindow):
 
     def reset_v(self, i, tex):
         print('-reset val normal')
-        print('reset vals: i=', i)  # todo x
+        print('reset vals: i=', i)
         val = float(tex)
         print(f'---active v: {self.active_varable}---')
         if self.cur_ty in ['superheated', 'compressed']:
@@ -606,7 +534,7 @@ class Window(QMainWindow):
                             da2 = da.loc[r]
                             self.d_set(da2,i,ddx)
                             break
-                    # find place where at quality x of fg = n, todo add error and precision
+                    # find place where at quality x of fg = n,
                     pass
                 else:
                     da = self.reset_vs(self.active_varable[0], self.varis.but[self.active_varable[0]].text())
@@ -642,6 +570,7 @@ class Window(QMainWindow):
         print('loading_all')
         print('-load user')
         self.setting_keys_combo = {self.m_d_s_n: 'water', self.s_d_s_n: 'p'}  # todo current windows, current el
+        # todo add error and precision
 
         self.font_ty_default = {}
 
@@ -688,68 +617,6 @@ class Window(QMainWindow):
         super().closeEvent(event)
 
 
-# class DataF:
-#     def __init__(self,df):
-#         self.df = df
-#         self.varis = 'hsv'
-#         # super().__init__()
-#     def __getitem__(self, item):
-#         def reset_v(self, i, tex):
-#             def check_v(iiii):
-#                 v_r = self.at_quality([float(self.varis.but[iiii + f].text()) for f in 'fg'], self.qual)
-#                 t_r = str((round(v_r, 4)))
-#                 self.varis.but[iiii].setText(t_r)
-#
-#             print('reset vals: i=', i)  # todo x
-#
-#             val = float(tex)
-#             if i == 'x':  # user input of independant and x gives y or y and x rare test
-#                 self.qual = val
-#                 for ii in self.vari_ls:
-#                     check_v(ii)
-#
-#             elif i in self.vari_ls and self.cur_ty in 'tp':
-#                 he = [float(self.varis.but[i + f].text()) for f in 'fg']  # todo empty
-#                 if min(he) <= val <= max(he):
-#                     self.qual = self.get_quality(he, val)
-#                     for ii in self.vari_ls:
-#                         if ii != i:
-#                             check_v(ii)
-#                 else:
-#                     for ii in self.varis.but.keys():
-#                         if ii != i:
-#                             self.varis.but[ii].setText('0')
-#             else:
-#
-#                 # di = self.wether[self.cur_el][self.cur_ty]  # todo any two data peices
-#                 ind_1 = self.current_data[i][1:] > val
-#                 ind_1 = ind_1.values
-#                 index_2 = [ind_1[i] != ind_1[i + 1] for i in range(ind_1.size - 1)]
-#
-#                 ind_3 = index_2.index(True)
-#
-#                 lo = self.current_data.loc[ind_3:ind_3 + 1]
-#                 # if self.cur_ty not in 'tp':
-#                 #     if i == list(self.varis.but.keys())[0]:
-#
-#                 dx = np.array(lo[i])
-#
-#                 for ii in self.varis.but.keys():
-#
-#                     if ii != i and ii != 'x':
-#                         if ii in self.vari_ls and self.cur_ty in 'tp':
-#                             check_v(ii)
-#                         else:
-#                             dy = np.array(lo[ii])
-#                             v_ret = self.interp(dx, dy, val)
-#                             t = str((round(v_ret, 4)))
-#                             self.varis.but[ii].setText(t)
-#                             print(f'ii,i ({ii},{i} set to {t}')
-#             # self.set_point()
-#             # todo plot proces on charts
-#         if isinstance(item, (int, slice)):
-#             return self.__class__(self.value[item])
-#         return [self.value[i] for i in item]
 class SuperCombo(QComboBox):
     def __init__(self, name, par, orient_v=True, vals=None, show_lab=True, run=True):
         super().__init__()
@@ -842,7 +709,7 @@ class SuperText(QWidget):
         print('____________________\n__________________\nreset data')
         vals = list(self.par.current_data.columns)
         if self.par.cur_ty in 'tp':
-            vals.extend(['v', 'h', 's', 'x'])  # todo always?
+            vals.extend(['v', 'h', 's', 'x'])
 
         self.removeButtons()
         self.lab_b = {}
@@ -872,7 +739,7 @@ class SuperText(QWidget):
                 n += 1
             j.editingFinished.connect(partial(self.run_cm, i))
             self.layout2.addWidget(k, m, ni)
-            self.layout2.addWidget(j, m + 1, ni)  # todo add lable for each
+            self.layout2.addWidget(j, m + 1, ni)
         self.update()
         print('end data add\n____________________\n')
 
@@ -977,14 +844,14 @@ class point_ls(QListWidget):
         print('-insert_list_wig_vals')
         print('I', input_command)
         self.list_index = self.currentRow()
-        if input_command == '+' or input_command == '=':  # todo add to menu
+        if input_command == '+' or input_command == '=':
             # remove
 
             dic_d = {}
             for k, v in self.par.varis.but.items():
                 print(f'k,v: ({k}:{v.text()})')
                 dic_d[k] = float(v.text())
-            self.add_motion(dic_d)  # todo maybe listitem? and check change motion
+            self.add_motion(dic_d)
             # self.mo.insert(ind)
 
             # remove dict
@@ -993,7 +860,6 @@ class point_ls(QListWidget):
             self.removeItem(self.list_index)
             self.full_c_v.remove(self.list_index)
             # remove dict
-            # todo rem from cam
             pass
         elif input_command == 'Up':
             print('up')
