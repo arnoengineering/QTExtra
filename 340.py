@@ -72,12 +72,14 @@ class gearPlot(pg.GraphicsLayoutWidget):
         self._set_pv_p()
         self.p = [self.ts, self.pv, self.tv]
         self.ps = [self.ts_points, self.pv_points, self.tv_points]
+        self.pss = [self.ts_process,self.pv_process,self.tv_process]
 
     def _set_ts_plot(self):
         self.ts_plot.addLegend()
         self.ts_plot.setLabels(**{'title': 'Teperature vs entropy', 'left': ('T', 'K'), 'bottom': ('S', "kJ/(kgK)")})
         self.ts = {'f': self.ts_plot.plot(pen='c', width=3), 'g': self.ts_plot.plot(pen='c', width=3)}
         self.ts_points = pg.ScatterPlotItem(pen='r', width=3)
+        self.ts_process = self.pv_plot.plot(pen='r', width=3)
         self.ts_plot.addItem(self.ts_points)
 
     def _set_pv_p(self):
@@ -87,8 +89,11 @@ class gearPlot(pg.GraphicsLayoutWidget):
         self.tv = {'f': self.pv_plot.plot(pen='g', width=3), 'g': self.pv_plot.plot(pen='g', width=3)}
         self.pv_points = pg.ScatterPlotItem(pen='r', width=3)
         self.tv_points = pg.ScatterPlotItem(pen='y', width=3)
+        self.pv_process = self.pv_plot.plot(pen='r', width=3)
+        self.tv_process = self.pv_plot.plot(pen='y', width=3)
         self.pv_plot.addItem(self.pv_points)
         self.pv_plot.addItem(self.tv_points)
+
         # self.pv_plot.setAxisLimits()
 
     def res(self, points):
@@ -249,20 +254,30 @@ class Window(QMainWindow):
         else:
             i = [(vp, ty), (vp2, ty2)]
             for n in range(2):
+                print(f'check type n:t, {n}:{i[n][1]}')
                 if i[n][1] == 't':
+                    print('point is t')
                     x = self.get_quality([f, g], vp)
                     if i[(n + 1) % 2][1] == 'superheated':
+                        print('point other is super')
                         ra = np.linspace(x, g)
+                        if n == 1:
+                            ra = ra[::-1]
                     else:
-                        ra = np.linspace(f, g)
-                    if n == 0:
-                        ra = ra[::-1]
-                    for ri in ra:
+                        ra = np.linspace(x, f)
+                        print('point other is compressed')
+                        if n == 0:
+                            ra = ra[::-1]
+
+                    for ri in ra:  # todo for all points
+                        print('quality ri: ', ri)
                         point_lst.append(self.at_quality([f, g], ri))
                 else:
                     if i[n][1] == 'superheated':
+                        print('point is super')
                         ti = g
                     else:
+                        print('point is compressed')
                         ti = f
                     ra = np.linspace(i[n][0], ti)
                     p2(i[n][1], ra)
@@ -323,47 +338,26 @@ class Window(QMainWindow):
         print('-proces_lines_sat')
         num_p = len(points)
         if num_p > 1:
-            for i in self.jk:
+            for n, i in enumerate(self.jk):
                 da = []
                 da_y = []
                 for ij in range(num_p):  # todo invalid, process
                     proces = self.proces[1]
                     pm = self.proscess_mean[proces]
                     d = self.point_to_x(points[ij][0], points[(ij + 1) % num_p][0], i[1], pm)
-                    for di in d:
-                        da.append(di[i[1]])
-                        da_y.append(di[i[0]])
-
-                self.ps[i].setData(da, da_y)
-
-    # def con_v(self, i, const_val, x=0, data=None):
-    #     print('-con v')
-    #     if data is None:
-    #         data = self.current_data
-    #     ind_1 = data[i][1:] > const_val
-    #     ind_1 = ind_1.values
-    #     index_2 = [ind_1[i] != ind_1[i + 1] for i in range(ind_1.size - 1)]
-    #
-    #     ind_3 = index_2.index(True)
-    #
-    #     lo = data.loc[ind_3:ind_3 + 1]
-    #
-    #     dx = np.array(lo[i])
-    #     p2 = {}
-    #     for ii in data.columns:
-    #         if ii != i and ii != 'x':
-    #             if ii.replace('g', '').replace('f', '') in self.vari_ls and self.cur_ty in 'tp':
-    #                 v_r = self.at_quality([self.interp(dx, data[ii + f], const_val) for f in 'fg'], x)
-    #                 t_r = round(v_r, 4)
-    #                 p2[ii.replace('g', '').replace('f', '')] = t_r
-    #             else:
-    #                 dy = np.array(lo[ii])
-    #                 v_ret = self.interp(dx, dy, const_val)
-    #                 t = round(v_ret, 4)
-    #                 p2[ii] = t
-    #                 print(f'ii,i ({ii},{i} set to {t}')
-    #     return pd.DataFrame(p2)
-    #     # self.set_point()
+                    # d2 = self.point_to_x(points[ij][0], points[(ij + 1) % num_p][0], i[0], pm)
+                    for di in range(len(d)):
+                        print('di= ', di)
+                        di2 = d[di]
+                        print('di2: ')
+                        print(di2)
+                        print('----------------\n---------------')
+                        da.append(di2[i[1]])
+                        da_y.append(di2[i[0]])
+                print('setting for ', i)
+                print('da: ', da)
+                print('da_y: ', da_y)
+                self.plot.pss[n].setData(da, da_y)
 
     def _set_table(self):
         print('-set table')
@@ -373,12 +367,6 @@ class Window(QMainWindow):
 
         self.table.cellClicked.connect(self.tab_s)
 
-    def _set_plots(self):
-        # plot_s = self.current_data['S', 'T'].sort('S')
-        # plot_v = self.current_data['v', 'p'].sort('v')
-        # plot(plot_s['s'],plot_s['T'])
-        # plot(plot_v['v'], plot_s['p'])
-        pass
 
     def reset_table(self):
         print('-reset table')
@@ -414,11 +402,6 @@ class Window(QMainWindow):
     def point_n(self, n):
         return float(self.varis.but[n].text())
 
-    def set_point(self):
-        print('-set point')
-        self.plot_v.plot(self.point_n('v'), self.point_n('p'))
-        self.plot_s.plot(self.point_n('s'), self.point_n('t'))
-        pass
 
     def get_quality(self, dx, x):
         # print('-getquality')
